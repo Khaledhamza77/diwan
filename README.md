@@ -1,2 +1,2 @@
 # diwan
-Local agentic RAG system for egyptian finance teams
+Agentic RAG system for egyptian finance teams
