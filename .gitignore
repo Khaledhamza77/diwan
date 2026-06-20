@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+docs/
+data/
+
 # C extensions
 *.so
 
@@ -208,6 +211,9 @@ tempCodeRunnerFile.py
 
 # PyPI configuration file
 .pypirc
+
+# Local trials (gitignored scratch space)
+vl_trial/
 
 # Marimo
 marimo/_static/
