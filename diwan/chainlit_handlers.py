@@ -15,6 +15,7 @@ import chainlit as cl
 from dotenv import load_dotenv
 
 from diwan.pipeline.graph import create_graph, run
+from diwan.retrieval.retriever import warm_up as warm_up_retriever
 
 load_dotenv()
 
@@ -52,6 +53,7 @@ async def on_chat_start() -> None:
     if _graph is None:
         try:
             _graph = await asyncio.to_thread(create_graph)
+            await asyncio.to_thread(warm_up_retriever)
         except Exception as exc:
             logger.error("Graph initialisation failed: %s", exc)
             await cl.Message(
@@ -115,8 +117,8 @@ async def on_message(message: cl.Message) -> None:
         await response_msg.update()
         return
 
-    # Apply text formatting
-    display_text = _promote_first_sentence(answer)
+    # Apply text formatting — only promote to heading for synthesized (cited) answers
+    display_text = _promote_first_sentence(answer) if "\n---\n" in answer else answer
 
     # Build sidebar citation elements from the footnote footer
     citation_els = _build_citation_elements(answer)
