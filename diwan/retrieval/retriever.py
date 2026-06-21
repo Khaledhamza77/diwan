@@ -9,6 +9,7 @@ Steps:
 """
 
 import os
+import threading
 from typing import TypedDict
 
 import torch
@@ -30,6 +31,11 @@ POST_RERANK_K = 5
 _embed_model: BGEM3FlagModel | None = None
 _reranker: FlagReranker | None = None
 _qdrant: QdrantClient | None = None
+
+# The fast tokenizers used by BGE-M3 and the reranker are backed by Rust and are
+# NOT thread-safe (concurrent calls raise "Already borrowed"). LangGraph fans out
+# retrieve_and_extract workers in parallel threads, so we serialize ML calls here.
+_ml_lock = threading.Lock()
 
 
 def _get_embed_model() -> BGEM3FlagModel:
@@ -69,6 +75,26 @@ class RetrieverOutput(TypedDict):
     chunks: list[RetrievedChunk]
 
 
+def warm_up() -> None:
+    """Eagerly load and materialize the embedding model and reranker.
+
+    BGEM3FlagModel initializes with meta tensors — weights are only moved to
+    the actual device on the first encode() call. We must run a real (dummy)
+    forward pass here so that device placement happens in the warm-up thread
+    rather than racing inside a parallel worker later.
+    """
+    model = _get_embed_model()
+    reranker = _get_reranker()
+    with _ml_lock:
+        model.encode(
+            ["warm-up"],
+            return_dense=True,
+            return_sparse=True,
+            return_colbert_vecs=False,
+        )
+        reranker.compute_score([["warm-up", "warm-up"]], normalize=True)
+
+
 def retrieve(sub_query: str, purpose: str) -> RetrieverOutput:
     """Run the full retrieval pipeline for one sub-query."""
     model   = _get_embed_model()
@@ -76,13 +102,14 @@ def retrieve(sub_query: str, purpose: str) -> RetrieverOutput:
     client  = _get_qdrant()
 
     # 1. Embed sub-query — dense + sparse in one forward pass.
-    out = model.encode(
-        [sub_query],
-        return_dense=True,
-        return_sparse=True,
-        return_colbert_vecs=False,
-        max_length=8192,
-    )
+    with _ml_lock:
+        out = model.encode(
+            [sub_query],
+            return_dense=True,
+            return_sparse=True,
+            return_colbert_vecs=False,
+            max_length=8192,
+        )
     dense       = out["dense_vecs"][0].tolist()
     sparse_dict = {int(k): float(v) for k, v in out["lexical_weights"][0].items()}
 
@@ -111,7 +138,8 @@ def retrieve(sub_query: str, purpose: str) -> RetrieverOutput:
     # 3. Rerank — cross-encoder scores each candidate against the query directly.
     passages = [h.payload["markdown"] for h in hits]
     pairs    = [[sub_query, p] for p in passages]
-    scores   = reranker.compute_score(pairs, normalize=True)
+    with _ml_lock:
+        scores = reranker.compute_score(pairs, normalize=True)
     # compute_score returns list[float] for multiple pairs; guard against a bare float.
     if isinstance(scores, (int, float)):
         scores = [float(scores)]
