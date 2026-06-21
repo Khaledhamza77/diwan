@@ -36,12 +36,14 @@ class RouterOutput(TypedDict):
     route: Route
     reasoning: str
     confidence: float
+    response: str | None  # populated only when route is خارج_النطاق
 
 
 class _RouterSchema(BaseModel):
     route: Literal["اجتماعي", "عام", "مالي_مباشر", "مالي_استرجاع", "خارج_النطاق"]
     reasoning: str
     confidence: float
+    response: str | None  # populated only when route is خارج_النطاق
 
 
 _SYSTEM = """\
@@ -86,6 +88,11 @@ Examples: live stock prices, economic forecasts, competitor banks, general knowl
 3. A question that sounds financial but is not about the covered documents → خارج_النطاق.
 4. When in doubt between مالي_مباشر and مالي_استرجاع, choose مالي_استرجاع.
 
+## Response field
+- When route is **خارج_النطاق**: populate `response` with a single polite Arabic sentence \
+that declines the question and redirects the user to the two covered documents.
+- For all other routes: set `response` to null.
+
 ## Examples
 
 User: "كيف حالك؟"
@@ -98,7 +105,7 @@ User: "كررها مرة أخرى" | Prior bot turn: "صافي الربح 5.2 م
 → { "route": "مالي_مباشر", "reasoning": "الإجابة مذكورة صراحةً في رد سابق من النظام.", "confidence": 0.95 }
 
 User: "ما هو سعر سهم CIB اليوم؟"
-→ { "route": "خارج_النطاق", "reasoning": "أسعار الأسهم الآنية خارج نطاق الوثائق المتاحة.", "confidence": 0.98 }
+→ { "route": "خارج_النطاق", "reasoning": "أسعار الأسهم الآنية خارج نطاق الوثائق المتاحة.", "confidence": 0.98, "response": "عذراً، لا أستطيع الإجابة عن أسعار الأسهم، فأنا متخصص في معايير المحاسبة المصرية 2020 والقوائم المالية المنفردة لبنك CIB." }
 
 User: "ما تعريف الأداة المالية حسب المعيار المصري؟" | History: bot mentioned معيار 25 but gave no definition
 → { "route": "مالي_استرجاع", "reasoning": "التعريف لم يُذكر صراحةً في المحادثة ويستلزم البحث.", "confidence": 0.96 }
@@ -157,4 +164,5 @@ def route(query: str, history: list[dict], trace=None) -> RouterOutput:
         "route":      parsed.route,
         "reasoning":  parsed.reasoning,
         "confidence": parsed.confidence,
+        "response":   parsed.response,
     }

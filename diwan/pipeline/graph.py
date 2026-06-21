@@ -5,7 +5,7 @@ Flow:
   START → router_node
     مالي_استرجاع  → planner_node → Send × N → retrieve_and_extract_node → synthesizer_node → END
     اجتماعي / عام / مالي_مباشر   → direct_response_node → END
-    خارج_النطاق                  → redirect_node → END
+    خارج_النطاق                  → router responds inline → END
 
 Chat history is persisted in Redis via RedisSaver, keyed by thread_id.
 Langfuse trace is passed through config["configurable"]["trace"] so it spans the full run
@@ -105,7 +105,15 @@ def router_node(state: GraphState, config: RunnableConfig) -> dict:
     trace = _get_trace(config)
     history = _history_dicts(state.get("messages") or [])
     result = route(state["query"], history, trace=trace)
-    return {"route": result["route"]}
+    update: dict = {"route": result["route"]}
+    if result["route"] == "خارج_النطاق":
+        answer = result["response"] or (
+            "عذراً، هذا السؤال خارج نطاق ما يغطيه النظام. "
+            "أنا متخصص في معايير المحاسبة المصرية 2020 والقوائم المالية المنفردة لبنك CIB."
+        )
+        update["final_answer"] = answer
+        update["messages"] = [HumanMessage(content=state["query"]), AIMessage(content=answer)]
+    return update
 
 
 def planner_node(state: GraphState, config: RunnableConfig) -> dict:
@@ -200,21 +208,6 @@ def direct_response_node(state: GraphState, config: RunnableConfig) -> dict:
     }
 
 
-_REDIRECT_MSG = (
-    "عذراً، هذا السؤال خارج نطاق ما يغطيه النظام. "
-    "أنا متخصص في الإجابة عن أسئلة تتعلق بمعايير المحاسبة المصرية 2020 "
-    "والقوائم المالية المنفردة لبنك CIB. "
-    "هل يمكنني مساعدتك في موضوع من هذه الوثائق؟"
-)
-
-
-def redirect_node(state: GraphState, config: RunnableConfig) -> dict:
-    return {
-        "final_answer": _REDIRECT_MSG,
-        "messages": [HumanMessage(content=state["query"]), AIMessage(content=_REDIRECT_MSG)],
-    }
-
-
 # ---------------------------------------------------------------------------
 # Routing logic
 # ---------------------------------------------------------------------------
@@ -224,7 +217,7 @@ def _route_after_router(state: GraphState) -> str:
     if r == "مالي_استرجاع":
         return "planner"
     if r == "خارج_النطاق":
-        return "redirect"
+        return END
     return "direct_response"
 
 
@@ -242,12 +235,11 @@ def _fan_out_after_planner(state: GraphState) -> list[Send]:
 def _build_graph() -> StateGraph:
     g = StateGraph(GraphState)
 
-    g.add_node("router",              router_node)
-    g.add_node("planner",             planner_node)
+    g.add_node("router",               router_node)
+    g.add_node("planner",              planner_node)
     g.add_node("retrieve_and_extract", retrieve_and_extract_node)
-    g.add_node("synthesizer",         synthesizer_node)
-    g.add_node("direct_response",     direct_response_node)
-    g.add_node("redirect",            redirect_node)
+    g.add_node("synthesizer",          synthesizer_node)
+    g.add_node("direct_response",      direct_response_node)
 
     g.add_edge(START, "router")
 
@@ -257,7 +249,7 @@ def _build_graph() -> StateGraph:
         {
             "planner":         "planner",
             "direct_response": "direct_response",
-            "redirect":        "redirect",
+            END:               END,
         },
     )
 
@@ -270,7 +262,6 @@ def _build_graph() -> StateGraph:
     g.add_edge("retrieve_and_extract", "synthesizer")
     g.add_edge("synthesizer",          END)
     g.add_edge("direct_response",      END)
-    g.add_edge("redirect",             END)
 
     return g
 
