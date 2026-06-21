@@ -15,4 +15,4 @@ OUT = Path(__file__).parent.parent / "docs" / "chunker_graph.png"
 graph = _build_graph()
 png_bytes = graph.get_graph().draw_mermaid_png()
 OUT.write_bytes(png_bytes)
-print(f"Saved → {OUT}")
+print(f"Saved: {OUT}")
