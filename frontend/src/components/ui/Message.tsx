@@ -46,6 +46,51 @@ function styleSourceTags(text: string): string {
   );
 }
 
+// Convert [N] inline citations in the body text to styled superscript badges.
+const _INLINE_CITE_RE = /\[(\d+)\]/g;
+function styleInlineCitations(body: string): string {
+  return body.replace(
+    _INLINE_CITE_RE,
+    (_, num) =>
+      `<sup dir="ltr" style="color:#a78bfa;font-size:0.7em;font-weight:700;vertical-align:super;line-height:0;white-space:nowrap;">[${num}]</sup>`,
+  );
+}
+
+// Render the footnote block (after ---) as a styled div instead of plain text.
+function buildFootnotesHtml(footnotesText: string): string {
+  const lines = footnotesText.trim().split("\n").filter((l) => l.trim());
+  if (lines.length === 0) return "";
+  const items = lines
+    .map((line) => {
+      const m = line.match(/^\[(\d+)\]\s*(.+)$/);
+      if (!m) return "";
+      const [, num, content] = m;
+      return (
+        `<div style="display:flex;gap:6px;align-items:baseline;padding:2px 0;">` +
+        `<sup dir="ltr" style="color:#a78bfa;font-weight:700;font-size:0.75em;min-width:18px;flex-shrink:0;">[${num}]</sup>` +
+        `<span style="color:#9ca3af;font-size:0.78em;">${content}</span>` +
+        `</div>`
+      );
+    })
+    .filter(Boolean);
+  return (
+    `<div style="margin-top:0.9em;padding-top:0.5em;border-top:1px solid #374151;">` +
+    items.join("") +
+    `</div>`
+  );
+}
+
+// Process the full answer text: style inline [N] citations and replace the
+// --- footnote block with formatted HTML.
+function processAnswer(text: string): string {
+  const sep = "\n---\n";
+  const idx = text.indexOf(sep);
+  if (idx === -1) return styleInlineCitations(text);
+  const body = styleInlineCitations(text.slice(0, idx));
+  const footnotesHtml = buildFootnotesHtml(text.slice(idx + sep.length));
+  return body + (footnotesHtml ? "\n\n" + footnotesHtml : "");
+}
+
 // Strip Arabic letter enumeration labels that leak through from the LLM
 // despite prompt instructions. Handles both "(أ)." suffix and "(أ) " prefix
 // patterns on bullet-point lines.
@@ -173,7 +218,7 @@ export const Message: React.FC<MessageProps> = React.memo(({
               ),
             }}
           >
-            {styleSourceTags(stripArabicListPrefix(stripArabicLetterLabels(text)))}
+            {processAnswer(styleSourceTags(stripArabicListPrefix(stripArabicLetterLabels(text))))}
           </ReactMarkdown>
           <style>{`
             .katex-display {
