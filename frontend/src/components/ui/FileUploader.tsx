@@ -32,7 +32,7 @@ export function FileUploader({
 
       <button
         type="button"
-        aria-label="Attach file"
+        aria-label="إرفاق ملف"
         onClick={() => ref.current?.click()}
         disabled={uploading}
         className={cn(`

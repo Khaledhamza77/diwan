@@ -6,8 +6,8 @@ type Props = {
 };
 
 export function WelcomeCard({
-  title = "Welcome to Chat With Your Data",
-  subtitle = "Your intelligent interface for real-time banking analytics. Ask a question or use a command below to begin.",
+  title = "مرحباً بك في المساعد المالي الذكي",
+  subtitle = "واجهتك الذكية للاستفسارات والتحليلات المالية. اطرح سؤالاً أو اختر موضوعاً أدناه للبدء.",
   className = "",
   children,
 }: Props) {

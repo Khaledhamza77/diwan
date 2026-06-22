@@ -20,14 +20,14 @@ export const TopBar: React.FC<TopBarProps> = ({
         w-full h-16
         flex items-center justify-between
         px-6 md:px-10
-        bg-gradient-to-b from-[#0c0e18] to-[#0a0f1f]
+        border-b border-white/10
         text-gray-100
         relative z-20
       `,
         className
       )}
     >
-      <div className="text-lg font-semibold">{title}</div>
+      <div className="text-lg font-semibold w-full text-right">{title}</div>
       {rightTag && (
         <div className="text-xs uppercase tracking-wider text-gray-300">
           {rightTag}

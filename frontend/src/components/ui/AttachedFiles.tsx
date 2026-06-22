@@ -33,7 +33,7 @@ export const AttachedFiles: React.FC<AttachedFilesProps> = ({ files, onRemove })
           {onRemove != null && (
             <button
               type="button"
-              aria-label={`Remove ${f.name}`}
+              aria-label={`إزالة ${f.name}`}
               onClick={() => onRemove(f.id)}
               className="text-gray-500 hover:text-red-400 transition-colors"
             >

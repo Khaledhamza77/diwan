@@ -147,7 +147,7 @@ export const Message: React.FC<MessageProps> = React.memo(({
         {children}
         {/* dir detected from first Arabic character in text, applied immediately
             on the first streaming token so RTL works during the heading phase. */}
-        <div className="prose prose-invert max-w-none" dir={textDir}>
+        <div className="prose prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0" dir={textDir}>
           <ReactMarkdown
             remarkPlugins={remarkPlugins}
             rehypePlugins={rehypePlugins}

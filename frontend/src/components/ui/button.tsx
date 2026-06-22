@@ -80,7 +80,7 @@ export const SendButton: React.FC<SendButtonProps> = ({
         height="18"
         viewBox="0 0 24 24"
         fill="currentColor"
-        className="translate-x-[1px]"
+        className="-translate-x-[1px] scale-x-[-1]"
         aria-hidden="true"
       >
         <path d="M3.4 20.4L22 12L3.4 3.6L3 10L17 12L3 14L3.4 20.4Z" />

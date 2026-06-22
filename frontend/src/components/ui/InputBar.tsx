@@ -15,16 +15,16 @@ export const InputBar = forwardRef<HTMLDivElement, InputBarProps>(
         className={cn(
           `
           fixed bottom-[40px] left-0 w-full
-          px-[5px]
-          flex justify-center
+          px-10 md:px-20
           pointer-events-auto
         `,
           className,
         )}
       >
-        <div className="w-full max-w-[75%] flex flex-col gap-2">
+        <div className="w-full max-w-5xl mx-auto flex flex-col gap-2">
           {topContent}
           <div
+            dir="rtl"
             className={cn(`
               w-full
               flex items-center gap-2
@@ -40,7 +40,7 @@ export const InputBar = forwardRef<HTMLDivElement, InputBarProps>(
             {children}
           </div>
           <p className="text-center text-[11px] text-gray-500 px-2">
-            AI-generated for informational purposes only. Always verify against official regulatory texts before making compliance decisions.
+            المحتوى مُولَّد بالذكاء الاصطناعي لأغراض إعلامية فقط. تحقق دائماً من المصادر الرسمية قبل اتخاذ أي قرارات مالية
           </p>
         </div>
       </div>
