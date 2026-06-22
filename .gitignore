@@ -3,8 +3,14 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-docs/
-data/
+docs/ARCHITECTURE*
+docs/plan.md
+data/postgres/
+data/qdrant/
+data/redis/
+data/mohasaba_parsed/markdown/pages/
+data/qawaim_parsed/markdown/pages/
+data/qawaim_parsed/chunks_checkpoint.json
 
 # C extensions
 *.so
